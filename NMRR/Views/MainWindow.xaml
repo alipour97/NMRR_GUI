@@ -24,7 +24,7 @@
                 <ListView ItemsSource="{Binding DataPoints}" Grid.Column="0">
                     <ListView.View>
                         <GridView>
-                            <GridViewColumn Header="Timestamp" DisplayMemberBinding="{Binding Timestamp}" />
+                            <GridViewColumn Header="Time_us" DisplayMemberBinding="{Binding Time_us}" />
                             <GridViewColumn Header="ADC Value" DisplayMemberBinding="{Binding ADCValue}" />
                         </GridView>
                     </ListView.View>

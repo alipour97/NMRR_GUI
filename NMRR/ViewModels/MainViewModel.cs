@@ -15,6 +15,7 @@ namespace NMRR.ViewModels
 
         public ObservableCollection<DeviceModel> DataPoints { get; set; }
         public double[] ADC_Buffer;
+        public uint[] Time_Buffer;
         public string CommandToSend { get; set; }
         public string SerialLog { get; set; } = string.Empty;
 
@@ -35,11 +36,14 @@ namespace NMRR.ViewModels
 
             _serialPortService.DataReceived += OnDataReceived;
             ADC_Buffer = new double[50];
+            Time_Buffer = new uint[50];
         }
 
         private void StartReceiving()
         {
             ADC_Buffer = new double[50];
+            Time_Buffer = new uint[50];
+            DataPoints.Clear();
             _serialPortService.StartReceiving();
             
         }
@@ -66,7 +70,7 @@ namespace NMRR.ViewModels
 
             foreach (var data in DataPoints)
             {
-                csvContent.AppendLine($"{data.Timestamp},{data.ADCValue}");
+                csvContent.AppendLine($"{data.Time_us},{data.ADCValue}");
             }
 
             File.WriteAllText(filePath, csvContent.ToString());
@@ -85,26 +89,36 @@ namespace NMRR.ViewModels
                 //        ADCValue = adcValue
                 //    });
                 //}\
-                if(data.EndsWith(",end}"))
+                if(data.EndsWith(",end} "))
                 {
                     if (data.StartsWith("{fb,"))
                     {
-                        for (int i = 0; i < 10; i++)
+                        for (int i = 0; i < 50; i++)
                         {
-                            UInt32 val = 0;
+                            uint val = 0;
+                            for (int j = sizeof(uint) - 1; j >= 0; j--)
+                            {
+                                val <<= 8;
+                                val += (uint)(data[4 + sizeof(uint) * i + j]);
+                            }
+                            ADC_Buffer[i] = ((double)val / (1 << 23) - 1) * 25;
+
+                            val = 0;
                             for (int j = 3; j >= 0; j--)
                             {
                                 val <<= 8;
-                                val += (UInt32)(data[4 + 4 * i + j]);
+                                val += (uint)(data[4 + 50 * sizeof(uint) + sizeof(uint) * i + j]);
                             }
+                            Time_Buffer[i] = val;
                             //UInt32 val = (UInt32)(data[4 + 2 << i] + 4<<data[2 << i] + 8<<data[2 << i] + 16<<data[2 << i]);
-                            ADC_Buffer[i] = ((double)val/ (1 << 23) - 1) * 25;
+
                             DataPoints.Add(new DeviceModel
                             {
-                                Timestamp = DateTime.Now,
+                                Time_us = Time_Buffer[i],
                                 ADCValue = ADC_Buffer[i]
                             });
                         }
+                        
                     }
                     else
                     {

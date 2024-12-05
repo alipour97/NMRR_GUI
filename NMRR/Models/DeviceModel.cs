@@ -6,7 +6,7 @@ namespace NMRR.Models
 {
     internal class DeviceModel
     {
-        public DateTime Timestamp { get; set; }
+        public uint Time_us { get; set; }
         public double ADCValue { get; set; }
     }
 }

@@ -16,7 +16,7 @@ namespace NMRR.Helpers
             _serialPort = new SerialPort
             {
                 PortName = "COM3",
-                BaudRate = 230400,
+                BaudRate = 115200,
                 DataBits = 8,
                 Parity = Parity.None,
                 StopBits = StopBits.One,
@@ -59,8 +59,11 @@ namespace NMRR.Helpers
 
         private void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            var data = _serialPort.ReadLine();
-            DataReceived?.Invoke(data);
+            while (_serialPort.BytesToRead > 0)
+            {
+                var data = _serialPort.ReadLine();
+                DataReceived?.Invoke(data);
+            }
         }
     }
 }
