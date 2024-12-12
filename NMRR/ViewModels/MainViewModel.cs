@@ -13,6 +13,9 @@ namespace NMRR.ViewModels
     {
         private readonly SerialPortService _serialPortService;
 
+        public const int ADC_CHANNELS = 1;
+        public const int ADC_BUFFER_LENGTH = 50;
+
         public ObservableCollection<DeviceModel> DataPoints { get; set; }
         public double[] ADC_Buffer;
         public uint[] Time_Buffer;
@@ -24,8 +27,11 @@ namespace NMRR.ViewModels
         public ICommand SendCommand { get; }
         public ICommand SaveToCsvCommand { get; }
 
+
+
         public MainViewModel()
         {
+
             _serialPortService = new SerialPortService();
             DataPoints = new ObservableCollection<DeviceModel>();
 
@@ -76,7 +82,32 @@ namespace NMRR.ViewModels
             File.WriteAllText(filePath, csvContent.ToString());
         }
 
-        private void OnDataReceived(byte[] data)
+        private void OnDataReceived(string command, byte[] data)
+        {
+            if(command == "inf")
+            {
+                string infoString = Encoding.ASCII.GetString(data);
+                SerialLog += $"{DateTime.Now}: {infoString}\n";
+                OnPropertyChanged(nameof(SerialLog));
+            }
+            else if(command == "fdb")
+            {
+                for (int i = 0; i < ADC_BUFFER_LENGTH; i++)
+                {
+                    uint val = BitConverter.ToUInt32(data, ADC_BUFFER_LENGTH * sizeof(uint) + i * sizeof(uint));
+                    App.Current.Dispatcher.Invoke(() =>
+                    {
+                        DataPoints.Add(new DeviceModel
+                        {
+                            Time_us = BitConverter.ToUInt32(data, i * sizeof(uint)),
+                            ADCValue = ((double)val / (1 << 23) - 1) * 25
+                            //ADCValue = (double)val
+                        });
+                    });
+                }
+            }
+        }
+        private void OnDataReceived2(string command, byte[] data)
         {
             App.Current.Dispatcher.Invoke(() =>
             {
@@ -90,7 +121,7 @@ namespace NMRR.ViewModels
                 //    });
                 //}\
                 string data_string = System.Text.Encoding.ASCII.GetString(data);
-                if (data_string.EndsWith(",end} "))
+                if (data_string.EndsWith(",end}"))
                 {
                     if (data_string.StartsWith("{fb,"))
                     {
