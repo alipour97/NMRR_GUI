@@ -76,11 +76,11 @@ namespace NMRR.ViewModels
             File.WriteAllText(filePath, csvContent.ToString());
         }
 
-        private void OnDataReceived(string data)
+        private void OnDataReceived(byte[] data)
         {
             App.Current.Dispatcher.Invoke(() =>
             {
-                
+
                 //if (double.TryParse(data, out double adcValue))
                 //{
                 //    DataPoints.Add(new DeviceModel
@@ -89,9 +89,10 @@ namespace NMRR.ViewModels
                 //        ADCValue = adcValue
                 //    });
                 //}\
-                if(data.EndsWith(",end} "))
+                string data_string = System.Text.Encoding.ASCII.GetString(data);
+                if (data_string.EndsWith(",end} "))
                 {
-                    if (data.StartsWith("{fb,"))
+                    if (data_string.StartsWith("{fb,"))
                     {
                         for (int i = 0; i < 50; i++)
                         {

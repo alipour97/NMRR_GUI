@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO.Ports;
+using System.Linq;
 using System.Text;
 
 namespace NMRR.Helpers
@@ -59,10 +61,20 @@ namespace NMRR.Helpers
 
         private void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
         {
+            List<byte> data_in = new List<byte>();
             while (_serialPort.BytesToRead > 0)
             {
-                var data = _serialPort.ReadLine();
-                DataReceived?.Invoke(data);
+                byte[] temp = new byte[_serialPort.BytesToRead];
+                _serialPort.Read(temp, 0, _serialPort.BytesToRead);
+                //var data = _serialPort.ReadLine();
+                data_in.AddRange(temp);
+                int length = data_in.Count;
+                if ((data_in[length-1] == '\n') && (data_in[length - 2] == '\r') && (data_in[length - 3] == '}'))
+                {
+                    DataReceived?.Invoke(data_in.ToArray());
+                    continue;
+                }
+                
             }
         }
     }
