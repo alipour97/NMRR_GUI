@@ -19,7 +19,7 @@ namespace NMRR.Helpers
         // Command dictionary mapping command types to payload sizes
         static readonly Dictionary<string, int> commandLengths = new Dictionary<string, int>
     {
-        { "fdb", 7 + (1 + MainViewModel.ADC_CHANNELS) * MainViewModel.ADC_BUFFER_LENGTH * sizeof(UInt32) }, // Time + ADC channel number * data length
+        { "fdb", 7 + (2* MainViewModel.ADC_CHANNELS) * MainViewModel.ADC_BUFFER_LENGTH * sizeof(UInt32) }, // Time + ADC channel number * data length
         { "cmd1", 100 }, // Example: Custom payload size
         { "cmd2", 20 }, // Another command with 20-byte payload
         // Add other commands here

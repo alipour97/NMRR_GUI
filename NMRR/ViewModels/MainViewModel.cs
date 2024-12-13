@@ -13,7 +13,7 @@ namespace NMRR.ViewModels
     {
         private readonly SerialPortService _serialPortService;
 
-        public const int ADC_CHANNELS = 1;
+        public const int ADC_CHANNELS = 2;
         public const int ADC_BUFFER_LENGTH = 50;
 
         public ObservableCollection<DeviceModel> DataPoints { get; set; }
@@ -72,11 +72,11 @@ namespace NMRR.ViewModels
             string filePath = $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
             StringBuilder csvContent = new StringBuilder();
 
-            csvContent.AppendLine("Timestamp,ADCValue");
+            csvContent.AppendLine("Pos_t,Pos Value,Tq_t,Tq Value");
 
             foreach (var data in DataPoints)
             {
-                csvContent.AppendLine($"{data.Time_us},{data.ADCValue}");
+                csvContent.AppendLine($"{data.Time_us},{data.PosValue},{data.Tq_t},{data.TqValue}");
             }
 
             File.WriteAllText(filePath, csvContent.ToString());
@@ -94,13 +94,16 @@ namespace NMRR.ViewModels
             {
                 for (int i = 0; i < ADC_BUFFER_LENGTH; i++)
                 {
-                    uint val = BitConverter.ToUInt32(data, ADC_BUFFER_LENGTH * sizeof(uint) + i * sizeof(uint));
+                    uint pos_val = BitConverter.ToUInt32(data, ADC_BUFFER_LENGTH * sizeof(uint) + i * sizeof(uint));
+                    uint tq_val = BitConverter.ToUInt32(data, 3 * ADC_BUFFER_LENGTH * sizeof(uint) + i * sizeof(uint));
                     App.Current.Dispatcher.Invoke(() =>
                     {
                         DataPoints.Add(new DeviceModel
                         {
                             Time_us = BitConverter.ToUInt32(data, i * sizeof(uint)),
-                            ADCValue = ((double)val / (1 << 23) - 1) * 25
+                            PosValue = ((double)pos_val / (1 << 23) - 1) * 25,
+                            Tq_t = BitConverter.ToUInt32(data, 2 * ADC_BUFFER_LENGTH * sizeof(uint) + i * sizeof(uint)),
+                            TqValue = ((double)tq_val / (1 << 23) - 1) * 25
                             //ADCValue = (double)val
                         });
                     });
@@ -147,7 +150,7 @@ namespace NMRR.ViewModels
                             DataPoints.Add(new DeviceModel
                             {
                                 Time_us = Time_Buffer[i],
-                                ADCValue = ADC_Buffer[i]
+                                PosValue = ADC_Buffer[i]
                             });
                         }
                         
