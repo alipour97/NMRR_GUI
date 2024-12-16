@@ -3,34 +3,38 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:NMRR" xmlns:viewmodels="clr-namespace:NMRR.ViewModels" d:DataContext="{d:DesignInstance Type=viewmodels:MainViewModel}"
+        xmlns:local="clr-namespace:NMRR" xmlns:viewmodels="clr-namespace:NMRR.ViewModels" xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf" d:DataContext="{d:DesignInstance Type=viewmodels:MainViewModel}"
         mc:Ignorable="d"
-        Title="NMRR" Height="450" Width="800">
+        Title="NMRR" Height="712" Width="1222">
     <Grid>
-        <StackPanel>
+        <StackPanel Height="696" VerticalAlignment="Top">
             <TextBox Text="{Binding CommandToSend}" />
             <Button x:Name="Send_Btn" Content="Send" Command="{Binding SendCommand}" Margin="5"/>
             <Button Content="Start Receiving" Command="{Binding StartCommand}" Margin="5"/>
             <Button Content="Stop Receiving" Command="{Binding StopCommand}" Margin="5"/>
             <Button Content="Save to CSV" Command="{Binding SaveToCsvCommand}" Margin="5" />
 
-            <Grid ShowGridLines="True" Background="#FFD57A7A" Height="200">
+            <Grid ShowGridLines="True" Height="546">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition/>
                     <ColumnDefinition/>
                 </Grid.ColumnDefinitions>
 
-                <TextBox x:Name="Log_TextBox" Text="{Binding SerialLog}" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Width="Auto" Height="Auto" Grid.Column="2" />
-                <ListView ItemsSource="{Binding DataPoints}" Grid.Column="0">
-                    <ListView.View>
-                        <GridView>
-                            <GridViewColumn Header="Pos_t" DisplayMemberBinding="{Binding Time_us}" />
-                            <GridViewColumn Header="Pos Value" DisplayMemberBinding="{Binding PosValue}" />
-                            <GridViewColumn Header="Tq_t Value" DisplayMemberBinding="{Binding Tq_t}" />
-                            <GridViewColumn Header="Tq Value" DisplayMemberBinding="{Binding TqValue}" />
-                        </GridView>
-                    </ListView.View>
-                </ListView>
+                <TextBox x:Name="Log_TextBox" Text="{Binding SerialLog}" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Height="Auto" RenderTransformOrigin="0.5,0.5" Margin="964,0,10,0" />
+                <lvc:CartesianChart Margin="0,0,263,0" Height="536" VerticalAlignment="Top">
+                    <lvc:CartesianChart.Series>
+                        <lvc:LineSeries Values="{Binding PosValues}" Title="PosValue" PointGeometry="{x:Null}" Fill="Transparent"/>
+                        <lvc:LineSeries Values="{Binding TqValues}" Title="TqValue" PointGeometry="{x:Null}" Fill="Transparent"/>
+
+                    </lvc:CartesianChart.Series>
+                    <lvc:CartesianChart.AxisX>
+                        <lvc:Axis Title="Time" />
+                    </lvc:CartesianChart.AxisX>
+                    <lvc:CartesianChart.AxisY>
+                        <lvc:Axis Title="ADC Value" MinValue="-10" MaxValue="10"/>
+
+                    </lvc:CartesianChart.AxisY>
+
+                </lvc:CartesianChart>
             </Grid>
         </StackPanel>
     </Grid>
