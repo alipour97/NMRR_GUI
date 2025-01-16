@@ -38,8 +38,8 @@ namespace NMRR.Helpers
             };
 
             _serialPort.DataReceived += OnDataReceived;
-            _serialPort.Open(); 
-            _serialPort.ReadExisting();
+            //_serialPort.Open(); 
+            //_serialPort.ReadExisting();
 
         }
 

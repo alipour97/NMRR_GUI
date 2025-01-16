@@ -6,29 +6,59 @@ using NMRR.Models;
 using System.Windows.Input;
 using NMRR.Helpers;
 using System.IO;
-using LiveCharts;
 using System.Linq;
+using OxyPlot;
+using OxyPlot.Series;
+using LineSeries = OxyPlot.Series.LineSeries;
+using ScottPlot;
+using System.Windows.Data;
+using System.Security.Policy;
 
 namespace NMRR.ViewModels
 {
     internal class MainViewModel : BaseViewModel
     {
+
+        public static MainViewModel Instance { get; private set; } = new MainViewModel();
+
         private readonly SerialPortService _serialPortService;
 
-        public const int ADC_CHANNELS = 2;
-        public const int ADC_BUFFER_LENGTH = 50;
 
-        public ObservableCollection<DeviceModel> DataPoints { get; set; }
-        public double[] ADC_Buffer;
-        public uint[] Time_Buffer;
+        private static double PosGain { get; set; } = 12;
+        private static double PosOffset { get; set; } = 0;
+        private static double TqGain { get; set; } = 10;
+        private static double TqOffset { get; set; } = 0;
+
+        public static int ADC_CHANNELS { get; set; } = 2;
+        public static int ADC_BUFFER_LENGTH { get; set; } = 50;
+        public static double Ts {get; set;} = 0.001;
 
         private List<double> tPosCsv;
         private List<double> tTqCsv;
         private List<double> PosCsv;
         private List<double> TqCsv;
 
-        public ChartValues<double> PosValues { get; set; } // Values for PosValue
-        public ChartValues<double> TqValues { get; set; }  // Values for TqValue
+        // Load Final Pattern to a specific variable so it can be download to MCU
+        private List<double> CommandPattern;
+
+        private bool showFeedback { get; set; } = false;
+
+        public PlotModel PlotModel { get; set; }
+
+
+        // ScottPlot Plot object to hold the data
+        public Plot PatternPlot { get; } = new();
+        public Plot FeedbackPlot { get; } = new();
+        public Plot ResultPlot { get; } = new();
+        public Multiplot ResultMultiPlot { get; } = new();
+        public event EventHandler PatternPlotUpdated;
+        public event EventHandler ResultPlotHandler;
+        public int PatternTabSelectedIndex { get; set; } = 0;
+
+        private LineSeries PosSeries { get; set; } // Values for PosValue
+        private LineSeries TqSeries { get; set; } // Values for TqValue
+
+        public string MotorPos { get; set; } = string.Empty;
         public string CommandToSend { get; set; }
         public string SerialLog { get; set; } = string.Empty;
 
@@ -41,12 +71,7 @@ namespace NMRR.ViewModels
 
         public MainViewModel()
         {
-
             _serialPortService = new SerialPortService();
-            DataPoints = new ObservableCollection<DeviceModel>();
-
-            PosValues = new ChartValues<double>(); // Initialize PosValue chart
-            TqValues = new ChartValues<double>();  // Initialize TqValue chart
 
             StartCommand = new RelayCommand(StartReceiving);
             StopCommand = new RelayCommand(StopReceiving);
@@ -54,27 +79,48 @@ namespace NMRR.ViewModels
             SaveToCsvCommand = new RelayCommand(SaveToCsv);
 
             _serialPortService.DataReceived += OnDataReceived;
-            ADC_Buffer = new double[50];
-            Time_Buffer = new uint[50];
 
             tPosCsv = new List<double>();
             PosCsv = new List<double>();
             tTqCsv = new List<double>();
             TqCsv = new List<double>();
+
+            CommandPattern = [];
+
+            PatternPlot.Axes.Left.Label.Text = "Angles (deg)";
+            PatternPlot.Axes.Bottom.Label.Text = "Time (s)";
+            PatternPlot.Axes.Left.MinorTickStyle.Width = 0;
+
+            FeedbackPlot.Axes.Left.Label.Text = "Torque (N.m)";
+            FeedbackPlot.Axes.Bottom.Label.Text = "Time (ms)";
+            FeedbackPlot.Axes.Left.MinorTickStyle.Width = 0;
+            FeedbackPlot.Axes.Bottom.MinorTickStyle.Width = 0;
+
+            Plot PosResultPlot = new();
+            Plot TqResultPlot = new();
+
+            PosResultPlot.Axes.Left.Label.Text = "Angle (deg)";
+            TqResultPlot.Axes.Left.Label.Text = "Torque (N.m)";
+            TqResultPlot.Axes.Bottom.Label.Text = "Time (s)";
+
+            ResultMultiPlot.AddPlot(PosResultPlot);
+            ResultMultiPlot.AddPlot(TqResultPlot);  
+            //ResultMultiPlot.Layout = new ScottPlot.MultiplotLayouts.Grid(2, 1);
+            //ResultMultiPlot.SetPosition(0, new ScottPlot.SubplotPositions.GridCell(0, 0, 1, 1));
+            //ResultMultiPlot.SetPosition(1, new ScottPlot.SubplotPositions.GridCell(1, 0, 1, 1));
+            
+            // Initialize MotorPos
+            MotorPos = "Motor Pos: 0.0";
         }
 
         private void StartReceiving()
         {
-            ADC_Buffer = new double[50];
-            Time_Buffer = new uint[50];
-            PosValues.Clear(); // Clear PosValue chart
-            TqValues.Clear();  // Clear TqValue chart
             tTqCsv.Clear();
             tPosCsv.Clear();
+            TqCsv.Clear();
+            PosCsv.Clear();
 
-            DataPoints.Clear();
             _serialPortService.StartReceiving();
-            
         }
 
         private void StopReceiving()
@@ -93,7 +139,7 @@ namespace NMRR.ViewModels
         private void SaveToCsv()
         {
             string filePath = $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
-            StringBuilder csvContent = new StringBuilder();
+            StringBuilder csvContent = new();
 
             csvContent.AppendLine("Pos_t,Pos Value,Tq_t,Tq Value");
 
@@ -132,9 +178,8 @@ namespace NMRR.ViewModels
                     // Add to batch
                     tPosBatch.Add((double)(BitConverter.ToUInt32(data, i * sizeof(uint)))/1000);
                     tTqBatch.Add((double)(BitConverter.ToUInt32(data, 2 * ADC_BUFFER_LENGTH * sizeof(uint) + i * sizeof(uint)))/1000);
-                    posBatch.Add(posValue);
-                    tqBatch.Add(tqValue);
-
+                    posBatch.Add((posValue - PosOffset) * PosGain);
+                    tqBatch.Add((tqValue - TqOffset) * TqGain);
                 }
 
                 tPosCsv.AddRange(tPosBatch);
@@ -142,92 +187,49 @@ namespace NMRR.ViewModels
                 PosCsv.AddRange(posBatch);
                 TqCsv.AddRange(tqBatch);
 
+                // Refresh the plot
+                FeedbackPlot.Clear();
+                var scatter = FeedbackPlot.Add.Scatter(tTqBatch, tqBatch);
+                scatter.MarkerShape = MarkerShape.None;
                 App.Current.Dispatcher.Invoke(() =>
                 {
-                    PosValues.Clear();
-                    TqValues.Clear();
-                    //if (PosValues.Count > 100) PosValues.RemoveAt(0);
-                    //if (TqValues.Count > 100) TqValues.RemoveAt(0);
-                    // Add batch data to charts
-                    PosValues.AddRange(posBatch);
-                    TqValues.AddRange(tqBatch);
+                    // Update GUI
+                    PatternPlotUpdated?.Invoke(FeedbackPlot, EventArgs.Empty);
+                    // Update Motor Pos
+                    MotorPos = $"Motor Pos: {posBatch.Last():F1}";
 
-
-                    // Notify the UI of property changes
-                    OnPropertyChanged(nameof(PosValues));
-                    OnPropertyChanged(nameof(TqValues));
-
-                    //DataPoints.Add(new DeviceModel
-                    //{
-                    //    Time_us = BitConverter.ToUInt32(data, i * sizeof(uint)),
-                    //    PosValue = posV,
-                    //    Tq_t = BitConverter.ToUInt32(data, 2 * ADC_BUFFER_LENGTH * sizeof(uint) + i * sizeof(uint)),
-                    //    TqValue = tqValue
-                    //    //ADCValue = (double)val
-                    //});
-
+                    OnPropertyChanged(nameof(MotorPos));
                 });
             }
         }
-        private void OnDataReceived2(string command, byte[] data)
+        public void UpdatePlot(List<double> pattern)
         {
             App.Current.Dispatcher.Invoke(() =>
             {
+                // Generate Time series
+                double[] dataX = new double[pattern.Count];
+                for (int i = 0; i < pattern.Count; i++)
+                    dataX[i] = i * Ts;
 
-                //if (double.TryParse(data, out double adcValue))
-                //{
-                //    DataPoints.Add(new DeviceModel
-                //    {
-                //        Timestamp = DateTime.Now,
-                //        ADCValue = adcValue
-                //    });
-                //}\
-                string data_string = System.Text.Encoding.ASCII.GetString(data);
-                if (data_string.EndsWith(",end}"))
-                {
-                    if (data_string.StartsWith("{fb,"))
-                    {
-                        for (int i = 0; i < 50; i++)
-                        {
-                            uint val = 0;
-                            for (int j = sizeof(uint) - 1; j >= 0; j--)
-                            {
-                                val <<= 8;
-                                val += (uint)(data[4 + sizeof(uint) * i + j]);
-                            }
-                            ADC_Buffer[i] = ((double)val / (1 << 23) - 1) * 25;
-
-                            val = 0;
-                            for (int j = 3; j >= 0; j--)
-                            {
-                                val <<= 8;
-                                val += (uint)(data[4 + 50 * sizeof(uint) + sizeof(uint) * i + j]);
-                            }
-                            Time_Buffer[i] = val;
-                            //UInt32 val = (UInt32)(data[4 + 2 << i] + 4<<data[2 << i] + 8<<data[2 << i] + 16<<data[2 << i]);
-
-                            DataPoints.Add(new DeviceModel
-                            {
-                                Time_us = Time_Buffer[i],
-                                PosValue = ADC_Buffer[i]
-                            });
-                        }
-                        
-                    }
-                    else
-                    {
-                        SerialLog += $"{DateTime.Now}: {data}\n";
-                        OnPropertyChanged(nameof(SerialLog));
-                    }
-                } 
-                else
-                {
-                    SerialLog += $"{DateTime.Now}: {data}\n";
-                    OnPropertyChanged(nameof(SerialLog));
-                }
-                
+                PatternPlot.Clear();
+                var scatter = PatternPlot.Add.Scatter(dataX, [.. pattern]);
+                scatter.MarkerShape = MarkerShape.None;
+                scatter.LineWidth = 1.5f;
+                scatter.LineColor = Colors.Blue;
+                PatternPlot.Axes.AutoScale();
+                PatternPlotUpdated?.Invoke(PatternPlot, EventArgs.Empty);
+                ResultPlotHandler?.Invoke(ResultMultiPlot, EventArgs.Empty);
+                // Change Pattern tab to Pattern
+                PatternTabSelectedIndex = 0;
+                OnPropertyChanged(nameof(PatternTabSelectedIndex));
             });
-            
+        }
+
+        // Load Final Pattern to a specific variable so it can be download to MCU
+        public void LoadFinalPattern(List<double> pattern)
+        {
+            CommandPattern = pattern;
         }
     }
+
 }
