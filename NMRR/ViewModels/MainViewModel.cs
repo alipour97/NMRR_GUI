@@ -7,65 +7,53 @@ using System.Windows.Input;
 using NMRR.Helpers;
 using System.IO;
 using System.Linq;
-using OxyPlot;
-using OxyPlot.Series;
-using LineSeries = OxyPlot.Series.LineSeries;
 using ScottPlot;
 using System.Windows.Data;
 using System.Security.Policy;
+using System.Windows;
 
 namespace NMRR.ViewModels
 {
-    internal class MainViewModel : BaseViewModel
+    internal partial class MainViewModel : BaseViewModel
     {
+        public static MainViewModel Instance { get; private set; } = new MainViewModel();  // Instance to use as Singlton model in other views
 
-        public static MainViewModel Instance { get; private set; } = new MainViewModel();
+        private readonly SerialPortService _serialPortService; // Serial Port Service to handle serial communication
+        private const double PosGain = 12; // Gain for Position (+-10V --> +-120 degree)
+        private const double PosOffset = 0; // Offset for Position (used for calibration)
+        private const double TqGain = 10; // Gain for Torque (+-10V --> +-100 N.m)
+        private const double TqOffset = 0; // Offset for Torque (used for calibration)
 
-        private readonly SerialPortService _serialPortService;
+        public const int ADC_CHANNELS = 2; // Number of ADC channels
+        public const int ADC_BUFFER_LENGTH = 50; // Number of samples per ADC channel buffer for feedback packets
+        public const double Ts = 0.001; // Sampling time for feedback data
 
-
-        private static double PosGain { get; set; } = 12;
-        private static double PosOffset { get; set; } = 0;
-        private static double TqGain { get; set; } = 10;
-        private static double TqOffset { get; set; } = 0;
-
-        public static int ADC_CHANNELS { get; set; } = 2;
-        public static int ADC_BUFFER_LENGTH { get; set; } = 50;
-        public static double Ts {get; set;} = 0.001;
-
-        private List<double> tPosCsv;
-        private List<double> tTqCsv;
-        private List<double> PosCsv;
-        private List<double> TqCsv;
+        private List<double> tPosCsv; // Time for Position data
+        private List<double> tTqCsv; // Time for Torque data
+        private List<double> PosCsv; // Position data
+        private List<double> TqCsv; // Torque data
 
         // Load Final Pattern to a specific variable so it can be download to MCU
         private List<double> CommandPattern;
 
-        private bool showFeedback { get; set; } = false;
-
-        public PlotModel PlotModel { get; set; }
-
+        private bool showFeedback { get; set; } = false; // Flag to show feedback data in FeedbackPlot or not
 
         // ScottPlot Plot object to hold the data
-        public Plot PatternPlot { get; } = new();
-        public Plot FeedbackPlot { get; } = new();
-        public Plot ResultPlot { get; } = new();
-        public Multiplot ResultMultiPlot { get; } = new();
-        public event EventHandler PatternPlotUpdated;
-        public event EventHandler ResultPlotHandler;
-        public int PatternTabSelectedIndex { get; set; } = 0;
+        public Plot PatternPlot { get; } = new(); // Pattern Plot used in View
+        public Plot FeedbackPlot { get; } = new(); // Feedback Plot used in View
+        public Plot ResultPlot { get; } = new(); // Result Plot used in View
+        public Multiplot ResultMultiPlot { get; } = new(); // Multiplot to hold Result Plot Position and Torque
+        public event EventHandler PatternPlotUpdated; // Event handler to update Pattern Plot in View
+        public event EventHandler ResultPlotHandler; // Event handler to update Result Plot in View
+        public int PatternTabSelectedIndex { get; set; } = 0; // Index of the selected tab in Pattern Plot (Pattern, Feedback, Result)
+        public string MotorPos { get; set; } = string.Empty; // Motor Position to show in View
+        public string CommandToSend { get; set; } // Command to send to MCU
+        public string SerialLog { get; set; } = string.Empty; // Serial Log to show in View
 
-        private LineSeries PosSeries { get; set; } // Values for PosValue
-        private LineSeries TqSeries { get; set; } // Values for TqValue
-
-        public string MotorPos { get; set; } = string.Empty;
-        public string CommandToSend { get; set; }
-        public string SerialLog { get; set; } = string.Empty;
-
-        public ICommand StartCommand { get; }
-        public ICommand StopCommand { get; }
-        public ICommand SendCommand { get; }
-        public ICommand SaveToCsvCommand { get; }
+        public ICommand StartCommand { get; } // Button to start receiving data from MCU
+        public ICommand StopCommand { get; } // Button to stop receiving data from MCU
+        public ICommand SendCommand { get; } // Button to send command to MCU
+        public ICommand SaveToCsvCommand { get; } // Button to save data to CSV file
 
 
 
@@ -80,149 +68,17 @@ namespace NMRR.ViewModels
 
             _serialPortService.DataReceived += OnDataReceived;
 
-            tPosCsv = new List<double>();
-            PosCsv = new List<double>();
-            tTqCsv = new List<double>();
-            TqCsv = new List<double>();
+            tPosCsv = [];
+            PosCsv = [];
+            tTqCsv = [];
+            TqCsv = [];
 
             CommandPattern = [];
 
-            PatternPlot.Axes.Left.Label.Text = "Angles (deg)";
-            PatternPlot.Axes.Bottom.Label.Text = "Time (s)";
-            PatternPlot.Axes.Left.MinorTickStyle.Width = 0;
+            InitializePlots();
 
-            FeedbackPlot.Axes.Left.Label.Text = "Torque (N.m)";
-            FeedbackPlot.Axes.Bottom.Label.Text = "Time (ms)";
-            FeedbackPlot.Axes.Left.MinorTickStyle.Width = 0;
-            FeedbackPlot.Axes.Bottom.MinorTickStyle.Width = 0;
-
-            Plot PosResultPlot = new();
-            Plot TqResultPlot = new();
-
-            PosResultPlot.Axes.Left.Label.Text = "Angle (deg)";
-            TqResultPlot.Axes.Left.Label.Text = "Torque (N.m)";
-            TqResultPlot.Axes.Bottom.Label.Text = "Time (s)";
-
-            ResultMultiPlot.AddPlot(PosResultPlot);
-            ResultMultiPlot.AddPlot(TqResultPlot);  
-            //ResultMultiPlot.Layout = new ScottPlot.MultiplotLayouts.Grid(2, 1);
-            //ResultMultiPlot.SetPosition(0, new ScottPlot.SubplotPositions.GridCell(0, 0, 1, 1));
-            //ResultMultiPlot.SetPosition(1, new ScottPlot.SubplotPositions.GridCell(1, 0, 1, 1));
-            
             // Initialize MotorPos
             MotorPos = "Motor Pos: 0.0";
-        }
-
-        private void StartReceiving()
-        {
-            tTqCsv.Clear();
-            tPosCsv.Clear();
-            TqCsv.Clear();
-            PosCsv.Clear();
-
-            _serialPortService.StartReceiving();
-        }
-
-        private void StopReceiving()
-        {
-            _serialPortService.StopReceiving();
-        }
-
-        private void SendCommandToDevice()
-        {
-            if (!string.IsNullOrEmpty(CommandToSend))
-            {
-                _serialPortService.SendData(CommandToSend);
-            }
-        }
-
-        private void SaveToCsv()
-        {
-            string filePath = $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
-            StringBuilder csvContent = new();
-
-            csvContent.AppendLine("Pos_t,Pos Value,Tq_t,Tq Value");
-
-            for (int i = 0; i < tPosCsv.Count; i++)
-            {
-                csvContent.AppendLine($"{tPosCsv[i]},{PosCsv[i]},{tTqCsv[i]},{TqCsv[i]}");
-            }
-
-            File.WriteAllText(filePath, csvContent.ToString());
-        }
-
-        private void OnDataReceived(string command, byte[] data)
-        {
-            if(command == "inf")
-            {
-                string infoString = Encoding.ASCII.GetString(data);
-                SerialLog += $"{DateTime.Now}: {infoString}\n";
-                OnPropertyChanged(nameof(SerialLog));
-            }
-            else if(command == "fdb")
-            {
-                // Temporary lists to hold batch updates
-                var tPosBatch = new List<double>();
-                var tTqBatch = new List<double>();
-                var posBatch = new List<double>();
-                var tqBatch = new List<double>();
-
-                for (int i = 0; i < ADC_BUFFER_LENGTH; i++)
-                {
-                    uint pos_val = BitConverter.ToUInt32(data, ADC_BUFFER_LENGTH * sizeof(uint) + i * sizeof(uint));
-                    uint tq_val = BitConverter.ToUInt32(data, 3 * ADC_BUFFER_LENGTH * sizeof(uint) + i * sizeof(uint));
-
-                    double posValue = ((double)pos_val / (1 << 23) - 1) * 25;
-                    double tqValue = ((double)tq_val / (1 << 23) - 1) * 25;
-
-                    // Add to batch
-                    tPosBatch.Add((double)(BitConverter.ToUInt32(data, i * sizeof(uint)))/1000);
-                    tTqBatch.Add((double)(BitConverter.ToUInt32(data, 2 * ADC_BUFFER_LENGTH * sizeof(uint) + i * sizeof(uint)))/1000);
-                    posBatch.Add((posValue - PosOffset) * PosGain);
-                    tqBatch.Add((tqValue - TqOffset) * TqGain);
-                }
-
-                tPosCsv.AddRange(tPosBatch);
-                tTqCsv.AddRange(tTqBatch);
-                PosCsv.AddRange(posBatch);
-                TqCsv.AddRange(tqBatch);
-
-                // Refresh the plot
-                FeedbackPlot.Clear();
-                var scatter = FeedbackPlot.Add.Scatter(tTqBatch, tqBatch);
-                scatter.MarkerShape = MarkerShape.None;
-                App.Current.Dispatcher.Invoke(() =>
-                {
-                    // Update GUI
-                    PatternPlotUpdated?.Invoke(FeedbackPlot, EventArgs.Empty);
-                    // Update Motor Pos
-                    MotorPos = $"Motor Pos: {posBatch.Last():F1}";
-
-                    OnPropertyChanged(nameof(MotorPos));
-                });
-            }
-        }
-        public void UpdatePlot(List<double> pattern)
-        {
-            App.Current.Dispatcher.Invoke(() =>
-            {
-                // Generate Time series
-                double[] dataX = new double[pattern.Count];
-                for (int i = 0; i < pattern.Count; i++)
-                    dataX[i] = i * Ts;
-
-                PatternPlot.Clear();
-                var scatter = PatternPlot.Add.Scatter(dataX, [.. pattern]);
-                scatter.MarkerShape = MarkerShape.None;
-                scatter.LineWidth = 1.5f;
-                scatter.LineColor = Colors.Blue;
-                PatternPlot.Axes.AutoScale();
-                PatternPlotUpdated?.Invoke(PatternPlot, EventArgs.Empty);
-                ResultPlotHandler?.Invoke(ResultMultiPlot, EventArgs.Empty);
-                // Change Pattern tab to Pattern
-                PatternTabSelectedIndex = 0;
-                OnPropertyChanged(nameof(PatternTabSelectedIndex));
-            });
         }
 
         // Load Final Pattern to a specific variable so it can be download to MCU

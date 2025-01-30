@@ -34,34 +34,36 @@ namespace NMRR
             FeedbackPlot.Refresh();
 
             //ResultPlot.Reset(MainViewModel.Instance.ResultPlot);
+            OnResultPlotHandler(ResultPlot.Multiplot, EventArgs.Empty);
             ResultPlot.Refresh();
 
-            MainViewModel.Instance.ResultPlotHandler += onResultPlotHandler;
+            MainViewModel.Instance.ResultPlotHandler += OnResultPlotHandler;
             MainViewModel.Instance.PatternPlotUpdated += OnPlotUpdated;
         }
 
         private void OnPlotUpdated(object sender, EventArgs e)
         {
             // Refresh the WpfPlot control whenever the plot is updated
-            if(sender == PatternPlot)
+            if((string)sender == "PatternPlot")
                 PatternPlot.Refresh();
-            else if(sender == FeedbackPlot)
+            else if((string)sender == "FeedbackPlot")
                 FeedbackPlot.Refresh();
-            else if (sender == ResultPlot)
+            else if ((string)sender == "ResultPlot")
                 ResultPlot.Refresh();
 
         }
 
-        private void onResultPlotHandler(object sender, EventArgs e)
+        private void OnResultPlotHandler(object sender, EventArgs e)
         {
+            int count = sender is Multiplot mp ? mp.Count : 0;
             if (sender is Multiplot multiplot)
             {
-                for (int i = 0; i < multiplot.Count; i++)
+                for (int i = 0; i < count; i++)
                 {
                     ResultPlot.Multiplot.AddPlot(multiplot.GetPlot(i));
                 }
-                ResultPlot.Refresh();
             }
+            ResultPlot.Refresh();
         }
     }
 }
