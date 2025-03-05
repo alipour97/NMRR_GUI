@@ -19,22 +19,23 @@ namespace NMRR.ViewModels
         public static MainViewModel Instance { get; private set; } = new MainViewModel();  // Instance to use as Singlton model in other views
 
         private readonly SerialPortService _serialPortService; // Serial Port Service to handle serial communication
-        private const double PosGain = 12; // Gain for Position (+-10V --> +-120 degree)
-        private const double PosOffset = 0; // Offset for Position (used for calibration)
-        private const double TqGain = 10; // Gain for Torque (+-10V --> +-100 N.m)
-        private const double TqOffset = 0; // Offset for Torque (used for calibration)
+        private const float PosGain = 12; // Gain for Position (+-10V --> +-120 degree)
+        private const float PosOffset = 0; // Offset for Position (used for calibration)
+        private const float TqGain = 10; // Gain for Torque (+-10V --> +-100 N.m)
+        private const float TqOffset = 0; // Offset for Torque (used for calibration)
 
         public const int ADC_CHANNELS = 2; // Number of ADC channels
         public const int ADC_BUFFER_LENGTH = 50; // Number of samples per ADC channel buffer for feedback packets
-        public const double Ts = 0.001; // Sampling time for feedback data
+        public const float Ts = 0.001F; // Sampling time for feedback data
+        public const int DAC_BULK_SIZE = 250; // Bulk size of DAC for lower UART buffer in MCU
 
-        private List<double> tPosCsv; // Time for Position data
-        private List<double> tTqCsv; // Time for Torque data
-        private List<double> PosCsv; // Position data
-        private List<double> TqCsv; // Torque data
+        private List<float> tPosCsv; // Time for Position data
+        private List<float> tTqCsv; // Time for Torque data
+        private List<float> PosCsv; // Position data
+        private List<float> TqCsv; // Torque data
 
         // Load Final Pattern to a specific variable so it can be download to MCU
-        private List<double> CommandPattern;
+        private List<float> CommandPattern;
 
         private bool showFeedback { get; set; } = false; // Flag to show feedback data in FeedbackPlot or not
 
@@ -54,7 +55,7 @@ namespace NMRR.ViewModels
         public ICommand StopCommand { get; } // Button to stop receiving data from MCU
         public ICommand SendCommand { get; } // Button to send command to MCU
         public ICommand SaveToCsvCommand { get; } // Button to save data to CSV file
-
+        public ICommand WritePatternCommand { get; } // Button to write pattern to MCU
 
 
         public MainViewModel()
@@ -65,6 +66,7 @@ namespace NMRR.ViewModels
             StopCommand = new RelayCommand(StopReceiving);
             SendCommand = new RelayCommand(SendCommandToDevice);
             SaveToCsvCommand = new RelayCommand(SaveToCsv);
+            WritePatternCommand = new RelayCommand(WritePattern);
 
             _serialPortService.DataReceived += OnDataReceived;
 
@@ -82,7 +84,7 @@ namespace NMRR.ViewModels
         }
 
         // Load Final Pattern to a specific variable so it can be download to MCU
-        public void LoadFinalPattern(List<double> pattern)
+        public void LoadFinalPattern(List<float> pattern)
         {
             CommandPattern = pattern;
         }

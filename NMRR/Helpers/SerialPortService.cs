@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO.Ports;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace NMRR.Helpers
 {
@@ -73,6 +74,19 @@ namespace NMRR.Helpers
             }
         }
 
+        public void SendData(byte[] data)
+        {
+            if (_serialPort.IsOpen)
+            {
+                _serialPort.Write(data, 0, data.Length);
+            }
+            else
+            {
+                _serialPort.Open();
+                _serialPort.Write(data, 0, data.Length);
+            }
+        }
+
         private void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
         {
 
@@ -97,6 +111,14 @@ namespace NMRR.Helpers
                         string info = _serialPort.ReadLine();
 
                         DataReceived?.Invoke(command, Encoding.UTF8.GetBytes(info.Substring(0,info.Length-5)));
+                    }
+                    else if(command.Contains("dac"))
+                    {
+                        //Thread.Sleep(10);
+                        string msg = _serialPort.ReadLine();
+                        _serialPort.ReadExisting();
+                        DataReceived?.Invoke(command, Encoding.UTF8.GetBytes(msg.Substring(0, msg.Length - 5)));
+                        //
                     }
                 }
                 //int bytesAvailable = _serialPort.BytesToRead;

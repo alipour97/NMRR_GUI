@@ -59,25 +59,25 @@ namespace NMRR.ViewModels
             try
             {
                 // Extract values from DynamicResources or other bindings
-                //double duration = Convert.ToDouble(PRBS_Duration);
-                double duration = Convert.ToDouble(PRBS_Duration);
-                double amplitude = Convert.ToDouble(PRBS_Amplitude);
-                double switchRate = Convert.ToDouble(PRBS_SR);
-                double maxWidth = Convert.ToDouble(PRBS_MaxWidth);
+                //float duration = Convert.ToFloat(PRBS_Duration);
+                float duration = float.Parse(PRBS_Duration);
+                float amplitude = float.Parse(PRBS_Amplitude);
+                float switchRate = float.Parse(PRBS_SR);
+                float maxWidth = float.Parse(PRBS_MaxWidth);
                 int cycles = Convert.ToInt16(PRBS_Cycles);
 
                 // Generate PRBS pattern
-                List<double> pattern = PRBS(duration, amplitude, switchRate, maxWidth);
+                List<float> pattern = PRBS(duration, amplitude, switchRate, maxWidth);
 
                 // Pass the pattern to MainViewModel's PlotModel
-                MainViewModel.Instance.UpdatePlot(pattern);
+                MainViewModel.Instance.UpdatePatternPlot(pattern);
 
                 for (int i = 0; i < cycles - 1; i++)
                 {
                     pattern.AddRange(PRBS(duration, amplitude, switchRate, maxWidth));
                 }
 
-                MainViewModel.Instance.LoadFinalPattern(pattern); // Load Final Pattern to a specific variable so it can be download to MCU
+                //MainViewModel.Instance.LoadFinalPattern(pattern); // Load Final Pattern to a specific variable so it can be download to MCU
             }
             catch (Exception ex)
             {
@@ -91,21 +91,21 @@ namespace NMRR.ViewModels
             try
             {
                 // Extract values from DynamicResources
-                double t12 = Convert.ToDouble(TV_T12);
-                double t34 = Convert.ToDouble(TV_T34);
-                double t56 = Convert.ToDouble(TV_T56);
+                float t12 = float.Parse(TV_T12);
+                float t34 = float.Parse(TV_T34);
+                float t56 = float.Parse(TV_T56);
 
-                double ang12 = Convert.ToDouble(TV_A12);
-                double ang34 = Convert.ToDouble(TV_A34);
-                double ang56 = Convert.ToDouble(TV_A56);
+                float ang12 = float.Parse(TV_A12);
+                float ang34 = float.Parse(TV_A34);
+                float ang56 = float.Parse(TV_A56);
 
-                double v23 = Convert.ToDouble(TV_V23);
-                double v45 = Convert.ToDouble(TV_V45);
+                float v23 = float.Parse(TV_V23);
+                float v45 = float.Parse(TV_V45);
 
                 int repeats = Convert.ToInt16(TV_Reps);
 
                 // Generate the Time Varying Pattern
-                List<double> pattern =
+                List<float> pattern =
                 [
                     .. Hold(t12, ang12),
                     .. Ramp(ang12, ang34, v23, 0),
@@ -118,20 +118,18 @@ namespace NMRR.ViewModels
                 bool includePrbs = Convert.ToBoolean(PRBS_Include);
                 if (includePrbs)
                 {
-                    double amp = Convert.ToDouble(PRBS_Amplitude);
-                    double sw = Convert.ToDouble(PRBS_SR);
-                    double maxwidth = Convert.ToDouble(PRBS_MaxWidth);
+                    float amp = float.Parse(PRBS_Amplitude);
+                    float sw = float.Parse(PRBS_SR);
+                    float maxwidth = float.Parse(PRBS_MaxWidth);
 
-                    List<double> prbs = PRBS(pattern.Count * MainViewModel.Ts, amp, sw, maxwidth, 1);
+                    List<float> prbs = PRBS(pattern.Count * MainViewModel.Ts, amp, sw, maxwidth, 1);
                     for (int t = 0; t < pattern.Count; t++)
                         pattern[t] += prbs[t];
                 }
-
                 // Repeat the pattern
                 pattern = numCycles(pattern, repeats);
-
                 // Pass the generated pattern to MainViewModel's PlotModel
-                _mainViewModel.UpdatePlot(pattern);
+                _mainViewModel.UpdatePatternPlot(pattern);
             }
             catch (Exception ex)
             {
@@ -142,25 +140,25 @@ namespace NMRR.ViewModels
         }
         private void Pulse_PlotClickExecute()
         {
-            double period = Convert.ToDouble(Pulse_Period);
-            double amplitude = Convert.ToDouble(Pulse_Amplitude);
+            float period = float.Parse(Pulse_Period);
+            float amplitude = float.Parse(Pulse_Amplitude);
             
-            double init_delay = Convert.ToDouble(Pulse_InitDelay);
-            double width = Convert.ToDouble(Pulse_Width);
+            float init_delay = float.Parse(Pulse_InitDelay);
+            float width = float.Parse(Pulse_Width);
             int numbers = Convert.ToInt16(Pulse_Numbers);
-            List<double> pattern = Pulse(period, amplitude, init_delay, width, numbers);
+            List<float> pattern = Pulse(period, amplitude, init_delay, width, numbers);
 
             // Pass the pattern to MainViewModel's PlotModel
-            MainViewModel.Instance.UpdatePlot(pattern);
+            MainViewModel.Instance.UpdatePatternPlot(pattern);
         }
 
-        private static List<double> Ramp(double ang1, double ang2, double velocity, double tHold = 0.5)
+        private static List<float> Ramp(float ang1, float ang2, float velocity, float tHold = 0.5F)
         {
-            double amplitude = ang2 - ang1;
+            float amplitude = ang2 - ang1;
             // velocity is defined to have same sign as amplitude
             velocity = Math.Sign(amplitude) * Math.Abs(velocity);
-            double tRamp = amplitude / velocity;
-            List<double> pattern = new List<double>();
+            float tRamp = amplitude / velocity;
+            List<float> pattern = new List<float>();
             for (int t = 0; t < (int)(tRamp / MainViewModel.Ts); t++)
                 pattern.Add(velocity * t * MainViewModel.Ts + ang1);
             for (int t = 0; t < (int)(tHold / MainViewModel.Ts); t++)
@@ -168,22 +166,22 @@ namespace NMRR.ViewModels
             return pattern;
         }
 
-        private static List<double> Hold(double duration, double amplitude)
+        private static List<float> Hold(float duration, float amplitude)
         {
-            List<double> pattern = new List<double>();
+            List<float> pattern = new List<float>();
             for (int t = 0; t < duration / MainViewModel.Ts; t++)
                 pattern.Add(amplitude);
             return pattern;
         }
 
-        private static List<double> Pulse(double period, double amplitude, double init_delay, double width, int numbers = 1)
+        private static List<float> Pulse(float period, float amplitude, float init_delay, float width, int numbers = 1)
         {
             // Change time scalge to seconds
             init_delay /= 1000;
             period /= 1000;
             width /= 1000;
 
-            List<double> pattern = [.. Hold(init_delay, 0)];
+            List<float> pattern = [.. Hold(init_delay, 0)];
             for (int num  = 0; num < numbers; num++)
             {
                 pattern.AddRange(Hold(width, amplitude));
@@ -193,9 +191,9 @@ namespace NMRR.ViewModels
             return pattern;
         }
 
-        private static List<double> PRBS(double duration, double amplitude, double switchRate, double maxWidth, double nCycles = 1)
+        private static List<float> PRBS(float duration, float amplitude, float switchRate, float maxWidth, float nCycles = 1)
         {
-            List<double> pattern = new List<double>();
+            List<float> pattern = new();
             switchRate *= MainViewModel.Ts;
             maxWidth *= MainViewModel.Ts;
             // duration, switchRate, Ts in seconds, amplitude in deg
@@ -236,10 +234,10 @@ namespace NMRR.ViewModels
             return pattern;
         }
 
-        private static List<double> numCycles(List<double> pattern, int repeats)
+        private static List<float> numCycles(List<float> pattern, int repeats)
         {
             // Repeat the pattern "repeats" number of times
-            List<double> fullPattern = new List<double>();
+            List<float> fullPattern = new List<float>();
             for (int i = 0; i < repeats; i++)
             {
                 fullPattern.AddRange(pattern);

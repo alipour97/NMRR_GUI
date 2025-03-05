@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ScottPlot.Colormaps;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -33,6 +34,26 @@ namespace NMRR.ViewModels
             }
         }
 
+        private void send_pattern(List<float> pattern)
+        {
+            if(pattern.Count < MainViewModel.DAC_BULK_SIZE)
+                SendBulk("pattern_init", pattern.Count, pattern.ToArray());
+            else
+                SendBulk("pattern_init", pattern.Count, pattern.GetRange(0,MainViewModel.DAC_BULK_SIZE).ToArray());
+        }
+
+        public void SendBulk(string message, int length, float[] pattern_bulk)
+        {
+            string init_message = "{"+ message + "," + length + ",";
+            string end_message = "}\r\n";
+            byte[] buffer = new byte[init_message.Length + pattern_bulk.Length * sizeof(float) + end_message.Length];
+            Buffer.BlockCopy(Encoding.ASCII.GetBytes(init_message), 0, buffer, 0, init_message.Length);
+            Buffer.BlockCopy(pattern_bulk, 0, buffer, init_message.Length, pattern_bulk.Length * sizeof(float));
+            Buffer.BlockCopy(Encoding.ASCII.GetBytes(end_message), 0, buffer, init_message.Length + pattern_bulk.Length * sizeof(float), end_message.Length);
+
+            _serialPortService.SendData(buffer);
+        }
+
         private void SaveToCsv()
         {
             string filePath = $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
@@ -53,6 +74,21 @@ namespace NMRR.ViewModels
             {
                 MessageBox.Show(ex.Message);
             }
+        }
+
+        private void WritePattern()
+        {
+            try
+            {
+                send_pattern(CommandPattern);
+                _serialPortService.SendData("{send,end}\r\n");
+                showFeedback = true;
+                PatternTabSelectedIndex = 1;
+                OnPropertyChanged(nameof(PatternTabSelectedIndex));
+
+            }
+            catch (Exception ex)
+            {  MessageBox.Show(ex.Message); }
         }
     }
 }

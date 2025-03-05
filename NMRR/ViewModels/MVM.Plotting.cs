@@ -29,23 +29,24 @@ namespace NMRR.ViewModels
             ResultMultiPlot.AddPlot(TqResultPlot);
         }
 
-        private void UpdateFeedbackPlot(List<double> tTqBatch, List<double> tqBatch, List<double> posBatch)
+        private void UpdateFeedbackPlot(List<float> tTqBatch, List<float> tqBatch, List<float> posBatch)
         {
             FeedbackPlot.Clear();
             var scatter = FeedbackPlot.Add.Scatter(tTqBatch.ToArray(), tqBatch.ToArray());
             scatter.MarkerShape = MarkerShape.None;
-
+            FeedbackPlot.Axes.AutoScale();
             App.Current.Dispatcher.Invoke(() =>
             {
                 PatternPlotUpdated?.Invoke("FeedbackPlot", EventArgs.Empty);
             });
         }
 
-        public void UpdatePlot(List<double> pattern)
+        public void UpdatePatternPlot(List<float> pattern)
         {
+            LoadFinalPattern(pattern);
             App.Current.Dispatcher.Invoke(() =>
             {
-                double[] dataX = new double[pattern.Count];
+                float[] dataX = new float[pattern.Count];
                 for (int i = 0; i < pattern.Count; i++)
                     dataX[i] = i * Ts;
 

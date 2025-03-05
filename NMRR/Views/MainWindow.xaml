@@ -12,7 +12,7 @@
     x:Class="NMRR.MainWindow" 
         Style="{StaticResource MaterialDesignWindow}"
         mc:Ignorable="d"
-        Title="NMRR" Height="950 " Width="1400" WindowState="Maximized" FontFamily="Roboto" FontSize="14">
+        Title="NMRR" Height="923" Width="1400" WindowState="Maximized" FontFamily="Roboto" FontSize="14">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -45,7 +45,7 @@
             </Grid>
 
 
-            <Grid VerticalAlignment="Stretch" Height="500">
+            <Grid Height="479">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
@@ -113,13 +113,13 @@
                     <Button Command="{Binding NoSaveBtn}" Content="No Save" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Width="818" FlowDirection="RightToLeft">
-                    <Button Command="{Binding StartButton}" Background="ForestGreen" Height="120" Width="120" Style="{DynamicResource MaterialDesignIconButton}" Margin="0,0,20,0">
+                    <Button Command="{Binding WritePatternCommand}" Background="ForestGreen" Height="120" Width="120" Style="{DynamicResource MaterialDesignIconButton}" Margin="0,0,20,0">
                         <md:PackIcon Kind="Play" Height="100" Width="100" Foreground="White"/>
                     </Button>
                     <Button Command="{Binding StopButton}" Background="#DC3545" Height="120  " Width="120" Style="{DynamicResource MaterialDesignIconButton}" Margin="0,0,20,0" HorizontalContentAlignment="Center">
                         <md:PackIcon Kind="Stop" Height="100" Width="100" Foreground="White"/>
                     </Button>
-                    
+
                 </StackPanel>
             </StackPanel>
         </StackPanel>
