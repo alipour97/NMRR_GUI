@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -59,11 +60,14 @@ namespace NMRR.ViewModels
             string filePath = $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
             StringBuilder csvContent = new();
 
-            csvContent.AppendLine("Pos_t,Pos Value,Tq_t,Tq Value");
+            csvContent.AppendLine("Pos_t,Ref Pos,Pos Value,Tq_t,Tq Value");
 
             for (int i = 0; i < tPosCsv.Count; i++)
             {
-                csvContent.AppendLine($"{tPosCsv[i]},{PosCsv[i]},{tTqCsv[i]},{TqCsv[i]}");
+                if(i < CommandPattern.Count)
+                    csvContent.AppendLine($"{tPosCsv[i]},{CommandPattern[i]},{PosCsv[i]},{tTqCsv[i]},{TqCsv[i]}");
+                else
+                    csvContent.AppendLine($"{tPosCsv[i]},0,{PosCsv[i]},{tTqCsv[i]},{TqCsv[i]}");
             }
 
             try
@@ -78,14 +82,22 @@ namespace NMRR.ViewModels
 
         private void WritePattern()
         {
+            tTqCsv.Clear();
+            tPosCsv.Clear();
+            TqCsv.Clear();
+            PosCsv.Clear();
+
             try
             {
-                send_pattern(CommandPattern);
-                _serialPortService.SendData("{send,end}\r\n");
-                showFeedback = true;
+                _serialPortService.SendData("{start,0,end}\r\n");
                 PatternTabSelectedIndex = 1;
                 OnPropertyChanged(nameof(PatternTabSelectedIndex));
-
+                
+                Thread.Sleep(100);
+                send_pattern(CommandPattern);
+                showFeedback = true;
+                
+                SetStatus("Loading Pattern", "warning");
             }
             catch (Exception ex)
             {  MessageBox.Show(ex.Message); }

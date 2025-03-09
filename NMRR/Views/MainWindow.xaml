@@ -122,6 +122,19 @@
 
                 </StackPanel>
             </StackPanel>
+            <StatusBar Margin="0,0,0,0">
+                <StatusBarItem HorizontalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <Border Background="{Binding StatusBGColor}">
+                            <TextBlock Text="{Binding StatusMessage}"  Width="100" />
+                        </Border>
+                        <ProgressBar Width="100" Height="9" Value="56" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="ForestGreen"></ProgressBar>
+                    </StackPanel>
+                    
+                </StatusBarItem>
+                
+            </StatusBar>
         </StackPanel>
+        
     </Grid>
 </Window>

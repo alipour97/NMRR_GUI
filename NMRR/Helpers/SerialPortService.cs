@@ -39,8 +39,14 @@ namespace NMRR.Helpers
             };
 
             _serialPort.DataReceived += OnDataReceived;
-            //_serialPort.Open(); 
-            //_serialPort.ReadExisting();
+            try
+            {
+                _serialPort.Open();
+                _serialPort.ReadExisting();
+            }
+            catch (Exception ex) { }
+
+
 
         }
 
@@ -50,14 +56,14 @@ namespace NMRR.Helpers
             {
                 _serialPort.Open();
             }
-            SendData("{send,1}");
+            SendData("{start,1}");
         }
 
         public void StopReceiving()
         {
             if (_serialPort.IsOpen)
             {
-                SendData("{send,0}");
+                SendData("{start,0}");
             }
         }
 
@@ -110,15 +116,21 @@ namespace NMRR.Helpers
                     {
                         string info = _serialPort.ReadLine();
 
-                        DataReceived?.Invoke(command, Encoding.UTF8.GetBytes(info.Substring(0,info.Length-5)));
+                        DataReceived?.Invoke(command, Encoding.UTF8.GetBytes(info[..^5]));
                     }
                     else if(command.Contains("dac"))
                     {
                         //Thread.Sleep(10);
                         string msg = _serialPort.ReadLine();
                         _serialPort.ReadExisting();
-                        DataReceived?.Invoke(command, Encoding.UTF8.GetBytes(msg.Substring(0, msg.Length - 5)));
+                        DataReceived?.Invoke(command, Encoding.UTF8.GetBytes(msg[..^5]));
                         //
+                    }
+                    else if(command.Contains("cmd"))
+                    {
+                        string info = _serialPort.ReadLine();
+
+                        DataReceived?.Invoke(command, Encoding.UTF8.GetBytes(info[..^5]));
                     }
                 }
                 //int bytesAvailable = _serialPort.BytesToRead;

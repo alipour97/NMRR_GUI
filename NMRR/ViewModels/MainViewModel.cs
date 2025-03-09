@@ -11,6 +11,9 @@ using ScottPlot;
 using System.Windows.Data;
 using System.Security.Policy;
 using System.Windows;
+using System.Drawing;
+using System.Windows.Threading;
+using ScottPlot.WPF;
 
 namespace NMRR.ViewModels
 {
@@ -37,19 +40,21 @@ namespace NMRR.ViewModels
         // Load Final Pattern to a specific variable so it can be download to MCU
         private List<float> CommandPattern;
 
-        private bool showFeedback { get; set; } = false; // Flag to show feedback data in FeedbackPlot or not
+        private bool showFeedback { get; set; } = true; // Flag to show feedback data in FeedbackPlot or not
 
         // ScottPlot Plot object to hold the data
         public Plot PatternPlot { get; } = new(); // Pattern Plot used in View
-        public Plot FeedbackPlot { get; } = new(); // Feedback Plot used in View
-        public Plot ResultPlot { get; } = new(); // Result Plot used in View
-        public Multiplot ResultMultiPlot { get; } = new(); // Multiplot to hold Result Plot Position and Torque
+        public Plot FeedbackPlot { get; } = new(); // Feedback Plot used in View        public Multiplot ResultMultiPlot { get; } = new(); // Multiplot to hold Result Plot Position and Torque
         public event EventHandler PatternPlotUpdated; // Event handler to update Pattern Plot in View
         public event EventHandler ResultPlotHandler; // Event handler to update Result Plot in View
         public int PatternTabSelectedIndex { get; set; } = 0; // Index of the selected tab in Pattern Plot (Pattern, Feedback, Result)
         public string MotorPos { get; set; } = string.Empty; // Motor Position to show in View
         public string CommandToSend { get; set; } // Command to send to MCU
         public string SerialLog { get; set; } = string.Empty; // Serial Log to show in View
+        public string GoToTextBox { get; set; } = string.Empty; // Go To Pos Text Box
+        public string StatusMessage { get; set; } = "IDLE"; // Status Bar Message Label
+        public System.Windows.Media.Brush StatusBGColor { get; set; } = System.Windows.Media.Brushes.LightGray; // StatusBar Background
+        private DispatcherTimer StatusTimer; // a Timer to get back status bar to IDLE
 
         public ICommand StartCommand { get; } // Button to start receiving data from MCU
         public ICommand StopCommand { get; } // Button to stop receiving data from MCU
@@ -69,6 +74,10 @@ namespace NMRR.ViewModels
             WritePatternCommand = new RelayCommand(WritePattern);
 
             _serialPortService.DataReceived += OnDataReceived;
+
+            StatusTimer = new DispatcherTimer();
+            StatusTimer.Interval = TimeSpan.FromSeconds(1); // Default 1s For Status Timer
+            StatusTimer.Tick += StatusTimer_Tick; // Attach the Tick event
 
             tPosCsv = [];
             PosCsv = [];

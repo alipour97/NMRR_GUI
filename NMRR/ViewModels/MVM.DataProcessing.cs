@@ -27,13 +27,29 @@ namespace NMRR.ViewModels
                 string msgString = Encoding.ASCII.GetString(data);
                 int DAC_idx = Convert.ToInt32(msgString);
                 if (DAC_idx >= CommandPattern.Count)
+                {
+                    _serialPortService.SendData("{start,1,end}\r\n");
+                    SetStatus("Loading Complete", "success");
+                    //MessageBox.Show("Done");
                     return;
+                }
                 else
                 {
-                    int length = (CommandPattern.Count < DAC_idx + DAC_BULK_SIZE) ? CommandPattern.Count % DAC_BULK_SIZE : DAC_BULK_SIZE;
+                    int length = (CommandPattern.Count < DAC_idx + DAC_BULK_SIZE) ? CommandPattern.Count - DAC_idx : DAC_BULK_SIZE;
                     SendBulk("pattern_bulk", length, CommandPattern.GetRange(DAC_idx, length).ToArray());
                 }
-                
+
+            }
+            else if (command == "cmd")
+            {
+                string msgString = Encoding.ASCII.GetString(data);
+
+                if (msgString == "end_pattern")
+                {
+                    showFeedback = false;
+                    SetStatus("Pattern Finished", "success");
+                    PlotResults();
+                }
             }
         }
 
@@ -43,6 +59,7 @@ namespace NMRR.ViewModels
             var tTqBatch = new List<float>();
             var posBatch = new List<float>();
             var tqBatch = new List<float>();
+            var tFeedback = new List<float>();
 
             for (int i = 0; i < ADC_BUFFER_LENGTH; i++)
             {
@@ -56,6 +73,7 @@ namespace NMRR.ViewModels
                 tTqBatch.Add((float)(BitConverter.ToUInt32(data, 2 * ADC_BUFFER_LENGTH * sizeof(uint) + i * sizeof(uint))) / 1000);
                 posBatch.Add((posValue - PosOffset) * PosGain);
                 tqBatch.Add((tqValue - TqOffset) * TqGain);
+                tFeedback.Add((float)i);
             }
 
             tPosCsv.AddRange(tPosBatch);
@@ -72,7 +90,7 @@ namespace NMRR.ViewModels
 
             // if operation mode is set to show feedback, show feedback
             if (showFeedback)
-                UpdateFeedbackPlot(tTqBatch, tqBatch, posBatch);
+                UpdateFeedbackPlot(tFeedback, tqBatch, posBatch);
         }
     }
 }

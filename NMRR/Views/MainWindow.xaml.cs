@@ -58,10 +58,32 @@ namespace NMRR
             int count = sender is Multiplot mp ? mp.Count : 0;
             if (sender is Multiplot multiplot)
             {
-                for (int i = 0; i < count; i++)
-                {
-                    ResultPlot.Multiplot.AddPlot(multiplot.GetPlot(i));
-                }
+                //for (int i = 0; i < 2; i++)
+                //{
+                    ResultPlot.Multiplot.AddPlot();
+                //}
+            }
+            else
+            {
+                List<List<float>> data = (List<List<float>>)sender;
+                Plot PosPlot = ResultPlot.Multiplot.GetPlot(0);
+                Plot TqPlot = ResultPlot.Multiplot.GetPlot(1);
+
+                PosPlot.Clear();
+                var PosScatter = PosPlot.Add.Scatter(data[0], data[1]);
+                PosScatter.MarkerShape = MarkerShape.None;
+                PosScatter.LineWidth = 1.5f;
+                PosScatter.LineColor = ScottPlot.Colors.Blue;
+                PosPlot.Axes.AutoScale();
+
+                TqPlot.Clear();
+                var TqScatter = TqPlot.Add.Scatter(data[2], data[3]);
+                TqScatter.MarkerShape = MarkerShape.None;
+                TqScatter.LineWidth = 1.5f;
+                TqScatter.LineColor = ScottPlot.Colors.Blue;
+                TqPlot.Axes.AutoScale();
+                //ResultPlot.Multiplot.Render();
+
             }
             ResultPlot.Refresh();
         }
