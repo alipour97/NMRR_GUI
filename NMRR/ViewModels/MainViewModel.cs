@@ -40,7 +40,8 @@ namespace NMRR.ViewModels
         // Load Final Pattern to a specific variable so it can be download to MCU
         private List<float> CommandPattern;
 
-        private bool showFeedback { get; set; } = true; // Flag to show feedback data in FeedbackPlot or not
+        private bool showFeedback { get; set; } = false; // Flag to show feedback data in FeedbackPlot or not
+        private bool CollectData { get; set; } = false; // Flag to Collect data to CSV buffers
 
         // ScottPlot Plot object to hold the data
         public Plot PatternPlot { get; } = new(); // Pattern Plot used in View

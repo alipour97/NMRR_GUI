@@ -76,10 +76,13 @@ namespace NMRR.ViewModels
                 tFeedback.Add((float)i);
             }
 
-            tPosCsv.AddRange(tPosBatch);
-            tTqCsv.AddRange(tTqBatch);
-            PosCsv.AddRange(posBatch);
-            TqCsv.AddRange(tqBatch);
+            if (CollectData)
+            {
+                tPosCsv.AddRange(tPosBatch);
+                tTqCsv.AddRange(tTqBatch);
+                PosCsv.AddRange(posBatch);
+                TqCsv.AddRange(tqBatch);
+            }
 
             // Update Motor Position
             App.Current.Dispatcher.Invoke(() =>
@@ -91,6 +94,15 @@ namespace NMRR.ViewModels
             // if operation mode is set to show feedback, show feedback
             if (showFeedback)
                 UpdateFeedbackPlot(tFeedback, tqBatch, posBatch);
+            if(CollectData && TqCsv.Count >= CommandPattern.Count)
+            {
+                CollectData = false;
+                showFeedback = false;
+                SetStatus("Pattern Finished", "success");
+                PlotResults();
+            }
+
+
         }
     }
 }

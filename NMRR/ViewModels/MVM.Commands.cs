@@ -86,14 +86,14 @@ namespace NMRR.ViewModels
             tPosCsv.Clear();
             TqCsv.Clear();
             PosCsv.Clear();
+            CollectData = true;
 
             try
             {
-                _serialPortService.SendData("{start,0,end}\r\n");
+                //_serialPortService.SendData("{dac_init,end}\r\n");
                 PatternTabSelectedIndex = 1;
                 OnPropertyChanged(nameof(PatternTabSelectedIndex));
                 
-                Thread.Sleep(100);
                 send_pattern(CommandPattern);
                 showFeedback = true;
                 

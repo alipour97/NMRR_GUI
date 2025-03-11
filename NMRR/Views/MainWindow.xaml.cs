@@ -77,7 +77,7 @@ namespace NMRR
                 PosPlot.Axes.AutoScale();
 
                 TqPlot.Clear();
-                var TqScatter = TqPlot.Add.Scatter(data[2], data[3]);
+                var TqScatter = TqPlot.Add.Scatter(data[0], data[3]);
                 TqScatter.MarkerShape = MarkerShape.None;
                 TqScatter.LineWidth = 1.5f;
                 TqScatter.LineColor = ScottPlot.Colors.Blue;
