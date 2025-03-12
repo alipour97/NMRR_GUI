@@ -87,7 +87,7 @@ namespace NMRR.ViewModels
             // Update Motor Position
             App.Current.Dispatcher.Invoke(() =>
             {
-                MotorPos = $"Motor Pos: {posBatch.Last():F1}";
+                MotorPos = $"{posBatch.Last():F1}";
                 OnPropertyChanged(nameof(MotorPos));
             });
 

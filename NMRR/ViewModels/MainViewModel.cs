@@ -62,6 +62,7 @@ namespace NMRR.ViewModels
         public ICommand SendCommand { get; } // Button to send command to MCU
         public ICommand SaveToCsvCommand { get; } // Button to save data to CSV file
         public ICommand WritePatternCommand { get; } // Button to write pattern to MCU
+        public ICommand GotoBtn { get; } // Button to start Goto
 
 
         public MainViewModel()
@@ -73,6 +74,7 @@ namespace NMRR.ViewModels
             SendCommand = new RelayCommand(SendCommandToDevice);
             SaveToCsvCommand = new RelayCommand(SaveToCsv);
             WritePatternCommand = new RelayCommand(WritePattern);
+            GotoBtn = new RelayCommand(GoTo);
 
             _serialPortService.DataReceived += OnDataReceived;
 
@@ -90,7 +92,7 @@ namespace NMRR.ViewModels
             InitializePlots();
 
             // Initialize MotorPos
-            MotorPos = "Motor Pos: 0.0";
+            MotorPos = "0.0";
         }
 
         // Load Final Pattern to a specific variable so it can be download to MCU

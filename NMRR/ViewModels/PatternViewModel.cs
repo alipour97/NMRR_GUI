@@ -152,7 +152,7 @@ namespace NMRR.ViewModels
             MainViewModel.Instance.UpdatePatternPlot(pattern);
         }
 
-        private static List<float> Ramp(float ang1, float ang2, float velocity, float tHold = 0.5F)
+        public static List<float> Ramp(float ang1, float ang2, float velocity, float tHold = 0.5F)
         {
             float amplitude = ang2 - ang1;
             // velocity is defined to have same sign as amplitude

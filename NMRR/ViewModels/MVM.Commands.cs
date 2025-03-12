@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -101,6 +102,13 @@ namespace NMRR.ViewModels
             }
             catch (Exception ex)
             {  MessageBox.Show(ex.Message); }
+        }
+
+        private void GoTo()
+        {
+            List<float> pattern = PatternViewModel.Ramp(0, float.Parse(GoToTextBox) - float.Parse(MotorPos), 5);
+            CommandPattern = pattern;
+            send_pattern(CommandPattern);
         }
     }
 }
