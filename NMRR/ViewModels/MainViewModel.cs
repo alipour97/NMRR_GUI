@@ -50,6 +50,7 @@ namespace NMRR.ViewModels
         public event EventHandler ResultPlotHandler; // Event handler to update Result Plot in View
         public int PatternTabSelectedIndex { get; set; } = 0; // Index of the selected tab in Pattern Plot (Pattern, Feedback, Result)
         public string MotorPos { get; set; } = string.Empty; // Motor Position to show in View
+        public string TimeStr { get; set; } = string.Empty; // Time of Feedback (to check if data is comming or not)
         public string CommandToSend { get; set; } // Command to send to MCU
         public string SerialLog { get; set; } = string.Empty; // Serial Log to show in View
         public string GoToTextBox { get; set; } = string.Empty; // Go To Pos Text Box
@@ -77,7 +78,6 @@ namespace NMRR.ViewModels
             GotoBtn = new RelayCommand(GoTo);
 
             _serialPortService.DataReceived += OnDataReceived;
-
             StatusTimer = new DispatcherTimer();
             StatusTimer.Interval = TimeSpan.FromSeconds(1); // Default 1s For Status Timer
             StatusTimer.Tick += StatusTimer_Tick; // Attach the Tick event
@@ -93,6 +93,7 @@ namespace NMRR.ViewModels
 
             // Initialize MotorPos
             MotorPos = "0.0";
+            TimeStr = "00:00";
         }
 
         // Load Final Pattern to a specific variable so it can be download to MCU

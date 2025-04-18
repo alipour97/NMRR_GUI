@@ -86,7 +86,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition/>
                     </Grid.ColumnDefinitions>
-
+                    <Label Content="{Binding TimeStr}" HorizontalAlignment="Left" Width="150" FontWeight="Bold" FontSize="20" VerticalAlignment="Top" Margin="200,0,0,0"/>
                     <Label Content="{Binding MotorPos}" HorizontalAlignment="Left" Width="150" FontWeight="Bold" FontSize="20" VerticalAlignment="Top" Margin="120,0,0,0"/>
                     <Label Content="MotorPos:" HorizontalAlignment="Left" Width="150" FontWeight="Bold" FontSize="20" VerticalAlignment="Top"/>
                     <StackPanel Orientation="Horizontal" Grid.Row="1">
@@ -114,7 +114,7 @@
                     <Button Command="{Binding SaveBtn}" Content="Save" Margin="0,0,0,10" />
                     <Button Command="{Binding NoSaveBtn}" Content="No Save" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Width="818" FlowDirection="RightToLeft">
+                <StackPanel Orientation="Horizontal" Width="768" FlowDirection="RightToLeft">
                     <Button Command="{Binding WritePatternCommand}" Background="ForestGreen" Height="120" Width="120" Style="{DynamicResource MaterialDesignIconButton}" Margin="0,0,20,0">
                         <md:PackIcon Kind="Play" Height="100" Width="100" Foreground="White"/>
                     </Button>

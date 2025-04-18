@@ -88,7 +88,11 @@ namespace NMRR.ViewModels
             App.Current.Dispatcher.Invoke(() =>
             {
                 MotorPos = $"{posBatch.Last():F1}";
+                int minute = (int)(tPosBatch.Last() / 60000);
+                int second = (int)(tPosBatch.Last() / 1000 % 60);
+                TimeStr = $"{minute:D2}:{second:D2}";
                 OnPropertyChanged(nameof(MotorPos));
+                OnPropertyChanged(nameof(TimeStr));
             });
 
             // if operation mode is set to show feedback, show feedback
