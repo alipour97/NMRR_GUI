@@ -14,6 +14,8 @@ using System.Windows;
 using System.Drawing;
 using System.Windows.Threading;
 using ScottPlot.WPF;
+using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace NMRR.ViewModels
 {
@@ -21,7 +23,7 @@ namespace NMRR.ViewModels
     {
         public static MainViewModel Instance { get; private set; } = new MainViewModel();  // Instance to use as Singlton model in other views
 
-        private readonly SerialPortService _serialPortService; // Serial Port Service to handle serial communication
+        private TcpClientService _serialPortService; // Serial Port Service to handle serial communication
         private const float PosGain = 12; // Gain for Position (+-10V --> +-120 degree)
         private const float PosOffset = 0; // Offset for Position (used for calibration)
         private const float TqGain = 10; // Gain for Torque (+-10V --> +-100 N.m)
@@ -30,7 +32,7 @@ namespace NMRR.ViewModels
         public const int ADC_CHANNELS = 2; // Number of ADC channels
         public const int ADC_BUFFER_LENGTH = 50; // Number of samples per ADC channel buffer for feedback packets
         public const float Ts = 0.001F; // Sampling time for feedback data
-        public const int DAC_BULK_SIZE = 250; // Bulk size of DAC for lower UART buffer in MCU
+        public const int DAC_BULK_SIZE = 256; // Bulk size of DAC for lower UART buffer in MCU
 
         private List<float> tPosCsv; // Time for Position data
         private List<float> tTqCsv; // Time for Torque data
@@ -64,20 +66,22 @@ namespace NMRR.ViewModels
         public ICommand SaveToCsvCommand { get; } // Button to save data to CSV file
         public ICommand WritePatternCommand { get; } // Button to write pattern to MCU
         public ICommand GotoBtn { get; } // Button to start Goto
+        public ICommand VoluntaryBtn { get; } // Button to start Goto
 
 
         public MainViewModel()
         {
-            _serialPortService = new SerialPortService();
-
+            _serialPortService = new TcpClientService("192.168.0.250", 7);
+            Task.Run(() => InitializeCommunication());
             StartCommand = new RelayCommand(StartReceiving);
             StopCommand = new RelayCommand(StopReceiving);
             SendCommand = new RelayCommand(SendCommandToDevice);
             SaveToCsvCommand = new RelayCommand(SaveToCsv);
             WritePatternCommand = new RelayCommand(WritePattern);
             GotoBtn = new RelayCommand(GoTo);
+            VoluntaryBtn = new RelayCommand(onVoluntaryBtn);
 
-            _serialPortService.DataReceived += OnDataReceived;
+
             StatusTimer = new DispatcherTimer();
             StatusTimer.Interval = TimeSpan.FromSeconds(1); // Default 1s For Status Timer
             StatusTimer.Tick += StatusTimer_Tick; // Attach the Tick event
@@ -100,6 +104,23 @@ namespace NMRR.ViewModels
         public void LoadFinalPattern(List<float> pattern)
         {
             CommandPattern = pattern;
+        }
+
+        private async Task InitializeCommunication()
+        {
+            _serialPortService.DataReceived += OnDataReceived;
+            bool connected = await _serialPortService.ConnectAsync();
+            if (!connected)
+            {
+                // Handle connection failure (e.g., show error message)
+                Debug.WriteLine("Failed to connect to the TCP server.");
+            }
+            else
+            {
+                Debug.WriteLine("Successfully connected to the TCP server.");
+                // Optionally send an initial command after connecting
+                // await _tcpService.StartReceivingAsync();
+            }
         }
     }
 

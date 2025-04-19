@@ -10,7 +10,7 @@ namespace NMRR.ViewModels
 {
     internal partial class MainViewModel
     {
-        private void OnDataReceived(string command, byte[] data)
+        private async void OnDataReceived(string command, byte[] data)
         {
             if (command == "inf")
             {
@@ -28,14 +28,18 @@ namespace NMRR.ViewModels
                 int DAC_idx = Convert.ToInt32(msgString);
                 if (DAC_idx >= CommandPattern.Count)
                 {
-                    _serialPortService.SendData("{start,1,end}\r\n");
+                    tTqCsv.Clear();
+                    tPosCsv.Clear();
+                    TqCsv.Clear();
+                    PosCsv.Clear();
+                    await _serialPortService.SendDataAsync("{start,1,end}\r\n");
                     SetStatus("Loading Complete", "success");
                     //MessageBox.Show("Done");
                     return;
                 }
                 else
                 {
-                    int length = (CommandPattern.Count < DAC_idx + DAC_BULK_SIZE) ? CommandPattern.Count - DAC_idx : DAC_BULK_SIZE;
+                    int length = (CommandPattern.Count < DAC_idx + DAC_BULK_SIZE / sizeof(float)) ? CommandPattern.Count - DAC_idx : DAC_BULK_SIZE / sizeof(float);
                     SendBulk("pattern_bulk", length, CommandPattern.GetRange(DAC_idx, length).ToArray());
                 }
 
@@ -98,7 +102,7 @@ namespace NMRR.ViewModels
             // if operation mode is set to show feedback, show feedback
             if (showFeedback)
                 UpdateFeedbackPlot(tFeedback, tqBatch, posBatch);
-            if(CollectData && TqCsv.Count >= CommandPattern.Count)
+            if (CollectData && TqCsv.Count >= CommandPattern.Count)
             {
                 CollectData = false;
                 showFeedback = false;

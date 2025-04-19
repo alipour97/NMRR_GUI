@@ -1,6 +1,8 @@
-﻿using ScottPlot.Colormaps;
+﻿using NMRR.Helpers;
+using ScottPlot.Colormaps;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -13,38 +15,40 @@ namespace NMRR.ViewModels
 {
     internal partial class MainViewModel
     {
-        private void StartReceiving()
+        private async void StartReceiving()
         {
             tTqCsv.Clear();
             tPosCsv.Clear();
             TqCsv.Clear();
             PosCsv.Clear();
+            showFeedback = true;
+            CollectData = true;
 
-            _serialPortService.StartReceiving();
+            await _serialPortService.StartReceivingAsync();
         }
 
-        private void StopReceiving()
+        private async void StopReceiving()
         {
-            _serialPortService.StopReceiving();
+            await _serialPortService.StopReceivingAsync();
         }
 
-        private void SendCommandToDevice()
+        private async void SendCommandToDevice()
         {
             if (!string.IsNullOrEmpty(CommandToSend))
             {
-                _serialPortService.SendData(CommandToSend);
+                await _serialPortService.SendDataAsync(CommandToSend);
             }
         }
 
         private void send_pattern(List<float> pattern)
         {
-            if(pattern.Count < MainViewModel.DAC_BULK_SIZE)
+            if(pattern.Count < MainViewModel.DAC_BULK_SIZE / sizeof(float))
                 SendBulk("pattern_init", pattern.Count, pattern.ToArray());
             else
-                SendBulk("pattern_init", pattern.Count, pattern.GetRange(0,MainViewModel.DAC_BULK_SIZE).ToArray());
+                SendBulk("pattern_init", pattern.Count, pattern.GetRange(0,(MainViewModel.DAC_BULK_SIZE) / sizeof(float)).ToArray());
         }
 
-        public void SendBulk(string message, int length, float[] pattern_bulk)
+        public async void SendBulk(string message, int length, float[] pattern_bulk)
         {
             string init_message = "{"+ message + "," + length + ",";
             string end_message = "}\r\n";
@@ -53,7 +57,7 @@ namespace NMRR.ViewModels
             Buffer.BlockCopy(pattern_bulk, 0, buffer, init_message.Length, pattern_bulk.Length * sizeof(float));
             Buffer.BlockCopy(Encoding.ASCII.GetBytes(end_message), 0, buffer, init_message.Length + pattern_bulk.Length * sizeof(float), end_message.Length);
 
-            _serialPortService.SendData(buffer);
+            await _serialPortService.SendDataAsync(buffer);
         }
 
         private void SaveToCsv()
@@ -109,6 +113,12 @@ namespace NMRR.ViewModels
             List<float> pattern = PatternViewModel.Ramp(0, float.Parse(GoToTextBox) - float.Parse(MotorPos), 5);
             CommandPattern = pattern;
             send_pattern(CommandPattern);
+        }
+
+        private void onVoluntaryBtn()
+        {
+            _serialPortService = new TcpClientService("192.168.0.250", 7);
+            Task.Run(() => InitializeCommunication());
         }
     }
 }
