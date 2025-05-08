@@ -115,10 +115,10 @@
                     <Button Command="{Binding NoSaveBtn}" Content="No Save" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Width="768" FlowDirection="RightToLeft">
-                    <Button Command="{Binding WritePatternCommand}" Background="ForestGreen" Height="120" Width="120" Style="{DynamicResource MaterialDesignIconButton}" Margin="0,0,20,0">
+                    <Button Command="{Binding StartBtnCommand}" Background="ForestGreen" Height="120" Width="120" Style="{DynamicResource MaterialDesignIconButton}" Margin="0,0,20,0">
                         <md:PackIcon Kind="Play" Height="100" Width="100" Foreground="White"/>
                     </Button>
-                    <Button Command="{Binding StopButton}" Background="#DC3545" Height="120  " Width="120" Style="{DynamicResource MaterialDesignIconButton}" Margin="0,0,20,0" HorizontalContentAlignment="Center">
+                    <Button Command="{Binding StopBtnCommand}" Background="#DC3545" Height="120  " Width="120" Style="{DynamicResource MaterialDesignIconButton}" Margin="0,0,20,0" HorizontalContentAlignment="Center">
                         <md:PackIcon Kind="Stop" Height="100" Width="100" Foreground="White"/>
                     </Button>
 

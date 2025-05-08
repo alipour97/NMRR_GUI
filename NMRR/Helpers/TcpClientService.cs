@@ -309,7 +309,7 @@ namespace NMRR.Helpers // Or your preferred namespace
         {
             // Add new data to our processing buffer
             _processingBuffer.AddRange(dataChunk);
-            Debug.WriteLine($"Added {dataChunk.Length} bytes to processing buffer. Total: {_processingBuffer.Count}");
+            //Debug.WriteLine($"Added {dataChunk.Length} bytes to processing buffer. Total: {_processingBuffer.Count}");
 
 
             // Keep processing the buffer while we might have complete commands
@@ -348,7 +348,7 @@ namespace NMRR.Helpers // Or your preferred namespace
 
                                 // Remove the processed command from the buffer
                                 _processingBuffer.RemoveRange(0, totalPacketLength);
-                                Debug.WriteLine($"Processed fdb command. {_processingBuffer.Count} bytes remaining in buffer.");
+                                //Debug.WriteLine($"Processed fdb command. {_processingBuffer.Count} bytes remaining in buffer.");
 
                                 // Invoke the event (consider marshalling if UI update needed)
                                 // Using Task.Run avoids blocking the processing loop, similar to original
@@ -415,7 +415,7 @@ namespace NMRR.Helpers // Or your preferred namespace
                                     // Remove the processed command + end sequence from buffer
                                     int totalCommandLength = endIndex + endSequence.Length;
                                     _processingBuffer.RemoveRange(0, totalCommandLength);
-                                    Debug.WriteLine($"Processed generic command '{commandType}'. {_processingBuffer.Count} bytes remaining.");
+                                    //Debug.WriteLine($"Processed generic command '{commandType}'. {_processingBuffer.Count} bytes remaining.");
 
 
                                     // Invoke event
@@ -582,6 +582,15 @@ namespace NMRR.Helpers // Or your preferred namespace
                 Debug.WriteLine("Not connected. Cannot send stop command.");
             }
             // Note: This method *doesn't* disconnect. Call DisconnectAsync separately if needed.
+        }
+
+        public async Task EmergencyStopBtnAsync()
+        {
+            await SendDataAsync("{emg_stop,1}");
+        }
+        public async Task ReleaseEmergencyAsync()
+        {
+            await SendDataAsync("{emg_stop,0}");
         }
     }
 }

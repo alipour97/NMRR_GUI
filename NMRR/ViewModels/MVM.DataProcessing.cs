@@ -10,9 +10,9 @@ namespace NMRR.ViewModels
 {
     internal partial class MainViewModel
     {
-        private async void OnDataReceived(string command, byte[] data)
+        private void OnDataReceived(string command, byte[] data)
         {
-            if (command == "inf")
+            if (command == "inf" | command == "err")
             {
                 string infoString = Encoding.ASCII.GetString(data);
                 SerialLog += $"{DateTime.Now}: {infoString}\n";
@@ -32,7 +32,9 @@ namespace NMRR.ViewModels
                     tPosCsv.Clear();
                     TqCsv.Clear();
                     PosCsv.Clear();
-                    await _serialPortService.SendDataAsync("{start,1,end}\r\n");
+                    showFeedback = true;
+                    CollectData = true;
+                    //await _serialPortService.SendDataAsync("{start,1,end}\r\n");
                     SetStatus("Loading Complete", "success");
                     //MessageBox.Show("Done");
                     return;
@@ -65,6 +67,9 @@ namespace NMRR.ViewModels
             var tqBatch = new List<float>();
             var tFeedback = new List<float>();
 
+            
+
+
             for (int i = 0; i < ADC_BUFFER_LENGTH; i++)
             {
                 uint pos_val = BitConverter.ToUInt32(data, ADC_BUFFER_LENGTH * sizeof(uint) + i * sizeof(uint));
@@ -72,11 +77,10 @@ namespace NMRR.ViewModels
 
                 float posValue = ((float)pos_val / (1 << 23) - 1) * 25;
                 float tqValue = ((float)tq_val / (1 << 23) - 1) * 25;
-
                 tPosBatch.Add((float)(BitConverter.ToUInt32(data, i * sizeof(uint))) / 1000);
-                tTqBatch.Add((float)(BitConverter.ToUInt32(data, 2 * ADC_BUFFER_LENGTH * sizeof(uint) + i * sizeof(uint))) / 1000);
-                posBatch.Add((posValue - PosOffset) * PosGain);
-                tqBatch.Add((tqValue - TqOffset) * TqGain);
+                tTqBatch.Add((float)(BitConverter.ToUInt32(data, 2 * ADC_BUFFER_LENGTH * sizeof(uint) + i * sizeof(uint))));
+                posBatch.Add(posValue * PosGain + PosOffset);
+                tqBatch.Add(tqValue * TqGain +TqOffset);
                 tFeedback.Add((float)i);
             }
 

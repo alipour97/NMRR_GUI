@@ -25,7 +25,7 @@ namespace NMRR.ViewModels
 
         private TcpClientService _serialPortService; // Serial Port Service to handle serial communication
         private const float PosGain = 12; // Gain for Position (+-10V --> +-120 degree)
-        private const float PosOffset = 0; // Offset for Position (used for calibration)
+        private const float PosOffset = (float)-0.25; // Offset for Position (used for calibration)
         private const float TqGain = 10; // Gain for Torque (+-10V --> +-100 N.m)
         private const float TqOffset = 0; // Offset for Torque (used for calibration)
 
@@ -34,6 +34,7 @@ namespace NMRR.ViewModels
         public const float Ts = 0.001F; // Sampling time for feedback data
         public const int DAC_BULK_SIZE = 256; // Bulk size of DAC for lower UART buffer in MCU
 
+        private string sessionFolderPath;
         private List<float> tPosCsv; // Time for Position data
         private List<float> tTqCsv; // Time for Torque data
         private List<float> PosCsv; // Position data
@@ -64,20 +65,25 @@ namespace NMRR.ViewModels
         public ICommand StopCommand { get; } // Button to stop receiving data from MCU
         public ICommand SendCommand { get; } // Button to send command to MCU
         public ICommand SaveToCsvCommand { get; } // Button to save data to CSV file
-        public ICommand WritePatternCommand { get; } // Button to write pattern to MCU
+        public ICommand SaveBtn { get; } // Button to save data to CSV file
+        public ICommand StartBtnCommand { get; } // Button to write pattern to MCU
+        public ICommand StopBtnCommand { get; } // Button to Stop
         public ICommand GotoBtn { get; } // Button to start Goto
         public ICommand VoluntaryBtn { get; } // Button to start Goto
+        
 
 
         public MainViewModel()
         {
-            _serialPortService = new TcpClientService("192.168.0.250", 7);
+            _serialPortService = new TcpClientService("192.168.5.250", 7);
             Task.Run(() => InitializeCommunication());
             StartCommand = new RelayCommand(StartReceiving);
             StopCommand = new RelayCommand(StopReceiving);
             SendCommand = new RelayCommand(SendCommandToDevice);
             SaveToCsvCommand = new RelayCommand(SaveToCsv);
-            WritePatternCommand = new RelayCommand(WritePattern);
+            SaveBtn = new RelayCommand(SaveToCsv);
+            StartBtnCommand = new RelayCommand(onStartBtn);
+            StopBtnCommand = new RelayCommand(onStopBtn);
             GotoBtn = new RelayCommand(GoTo);
             VoluntaryBtn = new RelayCommand(onVoluntaryBtn);
 
@@ -104,6 +110,10 @@ namespace NMRR.ViewModels
         public void LoadFinalPattern(List<float> pattern)
         {
             CommandPattern = pattern;
+            for (int i = 0; i < pattern.Count; i++)
+            {
+                CommandPattern[i] /= 12;
+            }
         }
 
         private async Task InitializeCommunication()

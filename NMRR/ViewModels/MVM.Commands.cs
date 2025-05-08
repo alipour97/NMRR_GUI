@@ -21,8 +21,8 @@ namespace NMRR.ViewModels
             tPosCsv.Clear();
             TqCsv.Clear();
             PosCsv.Clear();
-            showFeedback = true;
-            CollectData = true;
+            //showFeedback = true;
+            //CollectData = true;
 
             await _serialPortService.StartReceivingAsync();
         }
@@ -42,10 +42,16 @@ namespace NMRR.ViewModels
 
         private void send_pattern(List<float> pattern)
         {
-            if(pattern.Count < MainViewModel.DAC_BULK_SIZE / sizeof(float))
+            if (pattern.Count < MainViewModel.DAC_BULK_SIZE / sizeof(float))
+            {
                 SendBulk("pattern_init", pattern.Count, pattern.ToArray());
+                return;
+            }
             else
-                SendBulk("pattern_init", pattern.Count, pattern.GetRange(0,(MainViewModel.DAC_BULK_SIZE) / sizeof(float)).ToArray());
+            {
+                int DAC_idx = (MainViewModel.DAC_BULK_SIZE) / sizeof(float);
+                SendBulk("pattern_init", pattern.Count, pattern.GetRange(0, DAC_idx).ToArray());
+            }
         }
 
         public async void SendBulk(string message, int length, float[] pattern_bulk)
@@ -62,10 +68,19 @@ namespace NMRR.ViewModels
 
         private void SaveToCsv()
         {
-            string filePath = $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
+            string basePath = @"D:\NMRR_DATA";
+            if (string.IsNullOrEmpty(sessionFolderPath) || !Directory.Exists(sessionFolderPath))
+            {
+                string sessionName = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+                sessionFolderPath = Path.Combine(basePath, sessionName);
+                Directory.CreateDirectory(sessionFolderPath);
+            }
+
+            string fileName = $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.csv";
+            string filePath = Path.Combine(sessionFolderPath, fileName);
             StringBuilder csvContent = new();
 
-            csvContent.AppendLine("Pos_t,Ref Pos,Pos Value,Tq_t,Tq Value");
+            csvContent.AppendLine("Pos_t,Ref Pos,Pos Value,Pos_encoder,Tq Value");
 
             for (int i = 0; i < tPosCsv.Count; i++)
             {
@@ -85,13 +100,13 @@ namespace NMRR.ViewModels
             }
         }
 
-        private void WritePattern()
+        private void onStartBtn()
         {
             tTqCsv.Clear();
             tPosCsv.Clear();
             TqCsv.Clear();
             PosCsv.Clear();
-            CollectData = true;
+            //CollectData = true;
 
             try
             {
@@ -100,7 +115,7 @@ namespace NMRR.ViewModels
                 OnPropertyChanged(nameof(PatternTabSelectedIndex));
                 
                 send_pattern(CommandPattern);
-                showFeedback = true;
+                //showFeedback = true;
                 
                 SetStatus("Loading Pattern", "warning");
             }
@@ -108,16 +123,25 @@ namespace NMRR.ViewModels
             {  MessageBox.Show(ex.Message); }
         }
 
+        private void onStopBtn()
+        {
+            Task.Run(() => _serialPortService.EmergencyStopBtnAsync());
+        }
+
         private void GoTo()
         {
             List<float> pattern = PatternViewModel.Ramp(0, float.Parse(GoToTextBox) - float.Parse(MotorPos), 5);
             CommandPattern = pattern;
+            for (int i = 0; i < pattern.Count; i++)
+            {
+                CommandPattern[i] /= 12;
+            }
             send_pattern(CommandPattern);
         }
 
         private void onVoluntaryBtn()
         {
-            _serialPortService = new TcpClientService("192.168.0.250", 7);
+            _serialPortService = new TcpClientService("192.168.5.250", 7);
             Task.Run(() => InitializeCommunication());
         }
     }
